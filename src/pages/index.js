@@ -1,22 +1,36 @@
-// pages/index.js
-export default function Home({ formattedDate }) {
-  return (
-    <>
-      <h1>Static page</h1>
-      <p>This page is static. It was built on {formattedDate}.</p>
-      <p>
-        <a href="/ssr">View a server-side rendered page.</a>
-      </p>
-    </>
-  );
+
+import Link from 'next/link'
+import groq from 'groq'
+import client from '../../sanityClient'
+
+const Index = ({posts}) => {
+    return (
+      <div>
+        <h1>Welcome to a blog!</h1>
+        {posts.length > 0 && posts.map(
+          ({ _id, title = '', slug = '', publishedAt = '' }) =>
+            slug && (
+              <li key={_id}>
+                <Link href={`/post/${encodeURIComponent(slug.current)}`}>
+                  {title}
+                </Link>{' '}
+                ({new Date(publishedAt).toDateString()})
+              </li>
+            )
+        )}
+      </div>
+    )
 }
 
 export async function getStaticProps() {
-  const buildDate = Date.now();
-  const formattedDate = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "long",
-    timeStyle: "long",
-  }).format(buildDate);
-
-  return { props: { formattedDate } };
+    const posts = await client.fetch(groq`
+      *[_type == "post" && publishedAt < now()] | order(publishedAt desc)
+    `)
+    return {
+      props: {
+        posts
+      }
+    }
 }
+
+export default Index
